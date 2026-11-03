@@ -49,7 +49,7 @@ Les API de modèles 3D de musées (Smithsonian 3D, Sketchfab, Scan the World) ex
 
 ## Design
 
-App à écran unique avec trois onglets (Ouvrir, Galerie, Collection). Papier mastic, encre et os, bouton principal noir, cadres métalliques en dégradé par rareté, tableau voilé d'un drap de velours rouge qui frémit puis tombe (plus longtemps si l'œuvre est rare), le cadre s'allumant à la couleur de la rareté sous le drap, confettis et flash d'écran pour l'or et le vermeil, tampon « Légendaire ! », dix caisses sous forme de cartes à retourner. Fraunces en display, Hanken Grotesk pour l'interface.
+App à écran unique avec trois onglets (Ouvrir, Galerie, Collection). Papier mastic, encre et os, bouton principal noir, cadres métalliques en dégradé par rareté, tableau voilé d'un drap de velours rouge simulé en temps réel (tissu verlet 3D sur canvas, plis et éclairage calculés), qui se tend de plus en plus puis est arraché d'un coup, le cadre s'allumant à la couleur de la rareté sous le drap, avec sons synthétisés (souffle, boum, carillon), confettis et flash d'écran pour l'or et le vermeil, tampon « Légendaire ! », dix caisses sous forme de cartes à retourner. Fraunces en display, Hanken Grotesk pour l'interface.
 
 ## Panneau admin
 

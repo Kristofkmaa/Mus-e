@@ -75,6 +75,146 @@
   const flash = document.createElement('div'); flash.className = 'flash'; document.body.append(flash);
   function flashScreen() { flash.classList.remove('is-on'); void flash.offsetWidth; flash.classList.add('is-on'); }
 
+  /* ---------- Sons synthétisés ---------- */
+
+  let actx = null;
+  const soundOn = () => state.sound !== false;
+  function audio() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } } if (actx.state === 'suspended') actx.resume(); return actx; }
+  function whoosh(dur = 0.6, vol = 0.5) {
+    const ac = soundOn() && audio(); if (!ac) return;
+    const n = ac.sampleRate * dur, buf = ac.createBuffer(1, n, ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.5);
+    const src = ac.createBufferSource(); src.buffer = buf;
+    const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 0.8; f.frequency.setValueAtTime(300, ac.currentTime); f.frequency.exponentialRampToValueAtTime(2400, ac.currentTime + dur * 0.5);
+    const g = ac.createGain(); g.gain.value = vol;
+    src.connect(f).connect(g).connect(ac.destination); src.start();
+  }
+  function thud(vol = 0.7) {
+    const ac = soundOn() && audio(); if (!ac) return;
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine';
+    o.frequency.setValueAtTime(140, ac.currentTime); o.frequency.exponentialRampToValueAtTime(40, ac.currentTime + 0.35);
+    g.gain.setValueAtTime(vol, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.4);
+    o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.45);
+  }
+  function chime(rank) {
+    const ac = soundOn() && audio(); if (!ac) return;
+    const notes = rank >= 4 ? [523, 659, 784, 1047, 1319, 1568] : rank >= 3 ? [523, 659, 784, 1047] : [659, 988];
+    notes.forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain(); o.type = 'triangle'; o.frequency.value = f;
+      const t = ac.currentTime + i * 0.09;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 1);
+    });
+  }
+  function tick2(level) { // battement pendant la tension
+    const ac = soundOn() && audio(); if (!ac) return;
+    const o = ac.createOscillator(), g = ac.createGain(); o.type = 'square'; o.frequency.value = 90 + level * 60;
+    g.gain.setValueAtTime(0.08, ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.08);
+    o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.1);
+  }
+
+  /* ---------- Drap de velours simulé ---------- */
+
+  class Cloth {
+    constructor(canvas) {
+      this.c = canvas; this.ctx = canvas.getContext('2d');
+      this.cols = 26; this.rows = 34; this.pts = []; this.mode = 'idle'; this.t = 0; this.tense = 0; this.raf = 0; this.alive = false;
+    }
+    reset() {
+      const r = this.c.getBoundingClientRect();
+      this.w = r.width; this.h = r.height; this.c.width = this.w * devicePixelRatio; this.c.height = this.h * devicePixelRatio;
+      // Le drap couvre le cadre (qui occupe 16 %–84 % en x, 14 %–86 % en y du canvas) avec un débord.
+      const x0 = this.w * 0.05, x1 = this.w * 0.95, y0 = this.h * 0.085, y1 = this.h * 0.95;
+      this.sx = (x1 - x0) / (this.cols - 1); this.sy = (y1 - y0) / (this.rows - 1);
+      this.pts = [];
+      for (let j = 0; j < this.rows; j++) for (let i = 0; i < this.cols; i++) {
+        const x = x0 + i * this.sx, y = y0 + j * this.sy, zr = (Math.sin(i * 1.25) + 1) * 7 * Math.min(1, j / 3) + Math.sin(j * 0.6) * 2, z = zr;
+        this.pts.push({ x, y, z, zr, px: x, py: y, pz: z, pin: j === 0 });
+      }
+      this.mode = 'idle'; this.t = 0; this.tense = 0; this.gust = 0; this.alive = true; this.fade = 1; this.dropT = 0;
+      if (!this.raf) this.raf = requestAnimationFrame((ts) => this.loop(ts));
+    }
+    at(i, j) { return this.pts[j * this.cols + i]; }
+    step(dt) {
+      const g = this.mode === 'drop' ? 1.4 : 0.6, k = this.mode === 'drop' ? 0.995 : 0.975;
+      this.t += dt;
+      for (const p of this.pts) {
+        if (p.pin) continue;
+        const vx = (p.x - p.px) * k, vy = (p.y - p.py) * k, vz = (p.z - p.pz) * k;
+        p.px = p.x; p.py = p.y; p.pz = p.z;
+        // vent : souffle lent au repos, bourrasque nerveuse quand ça se tend, rafale vers le haut quand on arrache
+        const wave = Math.sin(this.t * 1.6 + p.y * 0.02) * 0.35 + Math.sin(this.t * 2.7 + p.x * 0.03) * 0.25;
+        let fx = wave * 0.08, fz = wave * 0.35;
+        if (this.mode === 'tense') { const a = this.tense; fx += Math.sin(this.t * (18 + a * 22) + p.y * 0.05) * a * 1.6; fz += (Math.sin(this.t * 25 + p.x * 0.08) + 0.6) * a * 1.4; }
+        if (this.mode === 'drop') { fx += this.gust * 1.2 + (Math.random() - 0.5) * 1.2; fz += Math.sin(this.t * 9 + p.y * 0.04) * 3 + 1; }
+        p.x += vx + fx; p.y += vy + g; p.z += vz + fz;
+        // le cadre est derrière : le tissu ne peut pas passer au travers, et il retombe à plat dessus
+        if (p.z < 0) { p.z = 0; p.pz = 0; }
+        if (this.mode !== 'drop') { p.z += (p.zr - p.z) * 0.08; if (p.z > 34) p.z = 34; }
+      }
+      for (let it = 0; it < 3; it++) {
+        for (let j = 0; j < this.rows; j++) for (let i = 0; i < this.cols; i++) {
+          const p = this.at(i, j);
+          if (i < this.cols - 1) this.link(p, this.at(i + 1, j), this.sx);
+          if (j < this.rows - 1) this.link(p, this.at(i, j + 1), this.sy);
+          if (i < this.cols - 1 && j < this.rows - 1) this.link(p, this.at(i + 1, j + 1), Math.hypot(this.sx, this.sy), 0.3);
+        }
+      }
+      if (this.mode === 'tense') { // les épingles tremblent avec la tension
+        const a = this.tense, s = Math.sin(this.t * 40) * a * 6, s2 = Math.cos(this.t * 31) * a * 3;
+        for (let i = 0; i < this.cols; i++) { const p = this.at(i, 0); p.x = p.x0 ?? (p.x0 = p.x); p.x = p.x0 + s + Math.sin(i * 0.8 + this.t * 20) * a * 2; p.y = (p.y0 ?? (p.y0 = p.y)) + s2; }
+      }
+      if (this.mode === 'drop') this.gust *= 0.96;
+    }
+    link(a, b, rest, stiff = 1) {
+      const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, d = Math.hypot(dx, dy, dz) || 1, diff = (d - rest) / d * 0.5 * stiff;
+      if (!a.pin) { a.x += dx * diff; a.y += dy * diff; a.z += dz * diff; }
+      if (!b.pin) { b.x -= dx * diff; b.y -= dy * diff; b.z -= dz * diff; }
+    }
+    draw() {
+      const ctx = this.ctx; ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); ctx.clearRect(0, 0, this.w, this.h);
+      ctx.globalAlpha = this.fade;
+      // ombre portée
+      ctx.save(); ctx.translate(6, 14); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath();
+      for (let i = 0; i < this.cols; i++) { const p = this.at(i, 0); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); }
+      for (let j = 1; j < this.rows; j++) { const p = this.at(this.cols - 1, j); ctx.lineTo(p.x, p.y); }
+      for (let i = this.cols - 1; i >= 0; i--) { const p = this.at(i, this.rows - 1); ctx.lineTo(p.x, p.y); }
+      for (let j = this.rows - 2; j > 0; j--) { const p = this.at(0, j); ctx.lineTo(p.x, p.y); }
+      ctx.closePath(); ctx.fill(); ctx.restore();
+      // velours : chaque maille éclairée selon sa normale
+      for (let j = 0; j < this.rows - 1; j++) for (let i = 0; i < this.cols - 1; i++) {
+        const a = this.at(i, j), b = this.at(i + 1, j), c = this.at(i + 1, j + 1), d = this.at(i, j + 1);
+        const ux = c.x - a.x, uy = c.y - a.y, uz = c.z - a.z, vx = d.x - b.x, vy = d.y - b.y, vz = d.z - b.z;
+        let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const n = Math.hypot(nx, ny, nz) || 1; nx /= n; ny /= n; nz /= n;
+        const lit = Math.max(0, nx * -0.6 + ny * -0.3 + nz * 0.74); const rim = Math.pow(1 - Math.abs(nz), 2.2);
+        const l = 0.22 + lit * 0.78 + rim * 0.45;
+        const r = Math.min(255, 150 * l + rim * 90), gg = Math.min(255, 18 * l + rim * 30), bb = Math.min(255, 36 * l + rim * 40);
+        ctx.fillStyle = `rgb(${r | 0},${gg | 0},${bb | 0})`; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      // cordon doré le long du haut
+      ctx.lineWidth = 3; ctx.strokeStyle = '#d9a51f'; ctx.beginPath();
+      for (let i = 0; i < this.cols; i++) { const p = this.at(i, 1); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); }
+      ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = '#ffe79a'; ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    loop(ts) {
+      if (!this.alive) { this.raf = 0; return; }
+      const dt = Math.min(0.05, (ts - (this.last || ts)) / 1000); this.last = ts;
+      if (!reduced) { this.step(dt || 0.016); this.draw(); }
+      else if (this.mode === 'drop') { this.alive = false; this.ctx.clearRect(0, 0, this.c.width, this.c.height); }
+      else this.draw();
+      if (this.mode === 'drop') { this.dropT = (this.dropT || 0) + dt; if (this.dropT > 0.45) this.fade = Math.max(0, this.fade - dt * 0.9); if (this.fade <= 0) this.alive = false; }
+      this.raf = requestAnimationFrame((t) => this.loop(t));
+    }
+    setTense(a) { this.mode = 'tense'; this.tense = a; }
+    drop() {
+      this.mode = 'drop'; this.gust = 6 + Math.random() * 3;
+      for (const p of this.pts) { if (p.pin) { p.pin = false; p.px = p.x + (Math.random() - 0.5) * 6; p.py = p.y + 10; } }
+    }
+  }
+  let cloth = null;
+
   /* ---------- Catalogue ---------- */
 
   let ART = [], BY_KEY = {};
@@ -185,6 +325,7 @@
     state.coins -= PRICE; state.pulls += 1;
     const rarity = rollRarity();
     save(); renderCoins();
+    audio();
 
     const stage = $('#stage'), veiled = $('#veiled'), vf = $('#veilFrame'), slot = $('#veilSlot'), reveal = $('#reveal'), stamp = $('#stamp');
     reveal.hidden = true; reveal.innerHTML = '';
@@ -192,32 +333,43 @@
     stage.classList.remove('is-glowing');
     veiled.hidden = false; veiled.className = 'veiled is-waiting';
     vf.className = 'frame frame--pending'; vf.style.setProperty('--ar', 0.8); slot.innerHTML = '';
+    cloth.reset();
     veiled.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
 
     try {
-      const [a] = await Promise.all([drawArtwork(rarity), wait(600)]);
+      const [a] = await Promise.all([drawArtwork(rarity), wait(500)]);
       const rank = 4 - BY_ID[a.r].rank; // 0 commune … 4 impériale
       const res = collect(a);
       save();
-      // Le cadre prend sa couleur sous le drap, qui se met à trembler.
+      // Le cadre prend sa couleur sous le drap, qui se tend de plus en plus.
       vf.className = `frame frame--${a.r} ${a.model ? 'frame--vitrine' : ''}`;
       vf.style.setProperty('--ar', a.model ? 1 : a.ratio);
       slot.innerHTML = innerHTML(a, true);
       hydrateViewers(slot);
+      await wait(50); cloth.reset();
       stage.style.setProperty('--glow', color(a.r));
       stage.classList.add('is-glowing');
-      const shake = 900 + rank * 400;
-      veiled.style.setProperty('--shake', `${shake}ms`);
       veiled.className = 'veiled is-tense';
-      buzz(rank >= 3 ? [60, 40, 60, 40, 120] : 40);
-      await wait(shake);
-      // Le drap tombe.
+      const shake = 1100 + rank * 450, t0 = performance.now();
+      let lastTick = 0;
+      await new Promise((done) => {
+        const f = (t) => {
+          const k = Math.min(1, (t - t0) / shake);
+          cloth.setTense(0.15 + k * k * (0.5 + rank * 0.18));
+          if (t - lastTick > 420 - k * 330) { lastTick = t; tick2(k * rank); buzz(15 + k * 25); }
+          if (k < 1) requestAnimationFrame(f); else done();
+        };
+        requestAnimationFrame(f);
+      });
+      // On arrache le drap.
+      cloth.drop(); whoosh(0.7, 0.6);
       veiled.className = 'veiled is-unveiled';
-      await wait(450);
+      await wait(260);
+      thud(0.5 + rank * 0.12); buzz(rank >= 3 ? [60, 40, 60, 40, 160] : [50]);
       const c = color(a.r);
-      confetti(30 + rank * 40, [c, '#fff4e0', rank >= 3 ? '#ffd75e' : c], { power: 1 + rank * 0.3 });
-      if (rank >= 2) { stamp.textContent = BY_ID[a.r].stamp; stamp.className = `stamp is-on r-${a.r}`; }
-      if (rank >= 3) { flashScreen(); buzz([80, 60, 200]); setTimeout(() => confetti(120, ['#ffd75e', '#ff4d7a', '#7df9ff', '#fff'], { y: 0.3, power: 1.6 }), 300); }
+      confetti(40 + rank * 45, [c, '#fff4e0', rank >= 3 ? '#ffd75e' : c], { power: 1.1 + rank * 0.3 });
+      if (rank >= 2) { stamp.textContent = BY_ID[a.r].stamp; stamp.className = `stamp is-on r-${a.r}`; chime(rank); }
+      if (rank >= 3) { flashScreen(); setTimeout(() => confetti(140, ['#ffd75e', '#ff4d7a', '#7df9ff', '#fff'], { y: 0.3, power: 1.7 }), 300); }
       reveal.innerHTML = (a.model ? '<p class="vitrine__hint">Sculpture en 3D, fais-la tourner</p>' : '') + cartelHTML(a, res);
       reveal.hidden = false;
       renderAll();
@@ -227,7 +379,7 @@
       toast('L\'œuvre n\'a pas pu être chargée, 100 napoléons rendus.');
     } finally {
       busy = false; renderCoins();
-      setTimeout(() => stage.classList.remove('is-glowing'), 1500);
+      setTimeout(() => stage.classList.remove('is-glowing'), 1800);
     }
   }
 
@@ -404,6 +556,12 @@
       const d = e.target.closest('[data-detail]'); if (d) return openDetail(d.dataset.detail);
       const t = e.target.closest('[data-tab]'); if (t) showTab(t.dataset.tab);
     });
+    const snd = $('#sound');
+    snd.setAttribute('aria-pressed', soundOn());
+    snd.addEventListener('click', () => { state.sound = !soundOn(); save(); snd.setAttribute('aria-pressed', soundOn()); if (soundOn()) chime(2); });
+    cloth = new Cloth($('#cloth'));
+    cloth.reset();
+    addEventListener('resize', () => { if (cloth.mode !== 'drop') cloth.reset(); });
     shownCoins = state.coins;
     renderAll(); renderCoins();
   }

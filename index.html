@@ -18,6 +18,7 @@
     <h1 class="brand">Musée</h1>
     <div class="top__right">
       <span class="streak" id="streak" hidden></span>
+      <button class="sound" id="sound" type="button" aria-pressed="true" aria-label="Son">Son</button>
       <button class="wallet" id="wallet" type="button" aria-label="Napoléons">
         <span class="coin" aria-hidden="true">N</span><b id="coins">0</b>
       </button>
@@ -30,7 +31,7 @@
         <div class="veiled is-idle" id="veiled">
           <div class="frame frame--pending" id="veilFrame" style="--ar:0.8">
             <div class="veil__slot" id="veilSlot"></div>
-            <div class="drape" id="drape" aria-hidden="true"><span class="drape__cord"></span><span class="drape__tassel"></span></div>
+            <canvas class="cloth" id="cloth" aria-hidden="true"></canvas>
           </div>
         </div>
         <div class="reveal" id="reveal" hidden></div>
