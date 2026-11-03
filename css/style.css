@@ -177,8 +177,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 500; margin: 0; letter-sp
   box-shadow: inset 4px 6px 10px rgb(0 0 0 / 0.45);
 }
 
-.frame--hero { width: min(100%, 560px); }
-.frame--hero .frame__inner { max-height: 68svh; margin: 0 auto; }
+.stage > .frame.frame--hero { width: auto; max-width: 100%; }
+.frame--hero .frame__inner { width: min(500px, calc(100vw - 2 * var(--gutter) - 2 * var(--fw)), calc(66svh * var(--ar, 0.8))); }
 .stage > .frame { width: min(100%, 520px); }
 .frame--small { --fw: 9px; }
 .frame--swatch { --fw: 12px; width: 84px; }

@@ -98,7 +98,7 @@ function frameHTML(art, rarity, { curtain = true, size = '' } = {}) {
   const ratio = Math.min(Math.max(art.ratio || 0.8, 0.55), 1.8);
   return `
     <div class="frame frame--${rarity} ${size}">
-      <div class="frame__inner" style="aspect-ratio:${ratio}">
+      <div class="frame__inner" style="aspect-ratio:${ratio};--ar:${ratio}">
         <img src="${esc(art.img)}" alt="${esc(art.title)}, ${esc(art.artist)}" referrerpolicy="no-referrer" loading="lazy" decoding="async">
         ${curtain ? `<div class="curtain"><span class="curtain__half curtain__half--l"></span><span class="curtain__half curtain__half--r"></span></div>` : ''}
       </div>
