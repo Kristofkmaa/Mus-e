@@ -1,6 +1,6 @@
 # Musée
 
-Un jeu de gacha de peinture. À chaque tirage, un vrai tableau du domaine public, de Giotto à Mondrian. La rareté se lit au nombre d'hexagones pleins, du cadre de bois au cadre de vermeil.
+Une app de gacha de peinture. On ouvre des caisses, on découvre de vrais tableaux du domaine public, de Giotto à Mondrian, et on remplit sa galerie. La rareté se lit à la couleur du cadre : bois, bronze, argent, or, vermeil holographique.
 
 ## Jouer
 
@@ -30,11 +30,12 @@ Puis ouvrir http://localhost:8000. Pour le publier : Settings → Pages → Depl
 - 1 tirage = 100 N ; 10 tirages = 1 000 N, avec au moins un cadre d'argent.
 - Un cadre doré au plus tard au 60e tirage.
 - Les œuvres pas encore accrochées sortent un peu plus souvent.
-- Les doublons se revendent. La progression est enregistrée dans le `localStorage` du navigateur.
+- Un doublon est revendu sur-le-champ (5 à 500 N selon le cadre). Un cadeau quotidien de 500 N entretient la série de jours.
+- La progression est enregistrée dans le `localStorage` du navigateur.
 
 ## Design
 
-Référence « Structured » : papier mastic, encre, os, craie et vélin. Aucune couleur saturée, aucun dégradé, aucune ombre. Fraunces en display (titres de section, nom de marque coupé par le bord de l'écran), Hanken Grotesk pour tout l'utilitaire entre 9 et 16 px. Boutons en pilule noire, cartes à coins encochés, vignettes rondes, hexagones comme indicateurs de rareté.
+App à écran unique avec trois onglets (Ouvrir, Galerie, Collection). Nuit violette, bouton principal doré, cadres métalliques en dégradé par rareté, caisse qui tremble puis éclate (plus longtemps si l'œuvre est rare), confettis et flash d'écran pour l'or et le vermeil, tampon « Légendaire ! », dix caisses sous forme de cartes à retourner. Fraunces (axe SOFT) en display, Bricolage Grotesque pour l'interface.
 
 ## Fichiers
 

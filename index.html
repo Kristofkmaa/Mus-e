@@ -4,94 +4,87 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Musée</title>
-  <meta name="description" content="Un jeu de gacha de peinture : à chaque tirage, un vrai tableau du domaine public, de Giotto à Mondrian.">
+  <meta name="description" content="Ouvre des caisses, découvre de vrais chefs-d'œuvre et remplis ta galerie. 486 tableaux, cinq cadres, du bois au vermeil.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,600,100;0,9..144,900,100;1,9..144,600,100&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <symbol id="hex" viewBox="0 0 12 12"><path d="M6 .8 10.6 3.4v5.2L6 11.2 1.4 8.6V3.4z" stroke="currentColor" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"/></symbol>
-    <symbol id="hex-full" viewBox="0 0 12 12"><path d="M6 .8 10.6 3.4v5.2L6 11.2 1.4 8.6V3.4z" fill="currentColor"/></symbol>
-  </svg>
+  <canvas class="fx" id="fx" aria-hidden="true"></canvas>
 
-  <header class="bar">
-    <a class="mark" href="#haut" aria-label="Musée, haut de page">M</a>
-    <nav class="bar__links">
-      <a href="#galerie">Ma galerie</a>
-      <span class="bar__purse"><b id="coins">0</b> napoléons</span>
-    </nav>
+  <header class="top">
+    <h1 class="brand">Musée</h1>
+    <div class="top__right">
+      <span class="streak" id="streak" hidden></span>
+      <button class="wallet" id="wallet" type="button" aria-label="Napoléons">
+        <span class="coin" aria-hidden="true">N</span><b id="coins">0</b>
+      </button>
+    </div>
   </header>
 
   <main>
-    <section class="hero" id="haut">
-      <div class="hero__cluster">
-        <h1>Un vrai tableau <em>à chaque</em> tirage</h1>
-        <p class="stats"><span>Œuvres : <b id="total">486</b></span><span>Accrochées : <b id="owned">0</b></span></p>
-        <div class="actions">
-          <button class="pill" id="pull1" type="button">Tirer une œuvre pour 100 N</button>
-          <button class="ghost" id="pull10" type="button">Dix tirages pour 1 000 N</button>
+    <section class="view is-active" id="view-tirage">
+      <div class="stage" id="stage">
+        <div class="crate" id="crate" aria-hidden="true">
+          <div class="crate__box"><span class="crate__label">MUSÉE</span><span class="crate__tape"></span></div>
+          <div class="crate__shadow"></div>
         </div>
-        <p class="micro" id="pity"></p>
+        <div class="reveal" id="reveal" hidden></div>
       </div>
-      <p class="wordmark" aria-hidden="true">Musée</p>
+      <p class="stamp" id="stamp" aria-live="polite"></p>
+      <div class="pity">
+        <div class="pity__track"><div class="pity__fill" id="pityFill"></div></div>
+        <span class="pity__text" id="pityText"></span>
+      </div>
+      <div class="cta">
+        <button class="btn btn--main" id="pull1" type="button">Ouvrir une œuvre <span class="btn__price"><span class="coin coin--sm" aria-hidden="true">N</span>100</span></button>
+        <button class="btn" id="pull10" type="button">Ouvrir ×10 <span class="btn__price"><span class="coin coin--sm" aria-hidden="true">N</span>1 000</span></button>
+      </div>
+      <p class="hint" id="hint">Dix ouvertures garantissent au moins un cadre d'argent.</p>
     </section>
 
-    <section class="panel" id="tirage" aria-label="Dernier tirage">
-      <img class="panel__img" id="panelImg" alt="" hidden>
-      <div class="card" id="card">
-        <div class="card__body" id="cardBody">
-          <p class="card__lead">Le premier tirage est à vous.</p>
-          <p class="card__text">Cinq salles, du bois au vermeil. Cinq cents napoléons vous attendent chaque jour.</p>
-        </div>
-        <span class="card__micro" id="cardMicro">TIRAGE Nº 0</span>
+    <section class="view" id="view-galerie">
+      <div class="progress">
+        <div class="progress__head"><strong>Ma galerie</strong><span id="progressText">0 / 486</span></div>
+        <div class="progress__track"><div class="progress__fill" id="progressFill"></div></div>
       </div>
-    </section>
-
-    <section class="gallery" id="galerie">
-      <div class="corners"><span>MA GALERIE</span><span id="galleryCount">0 ŒUVRE</span></div>
-      <h2 class="display">Ma galerie</h2>
-      <div class="filters" id="filters" role="group" aria-label="Filtrer par salle"></div>
-      <div class="sorts">
-        <label class="sorts__label" for="sort">Trier</label>
-        <select id="sort">
-          <option value="recent">Plus récentes</option>
-          <option value="rarity">Plus rares</option>
-          <option value="artist">Par artiste</option>
-        </select>
-        <button class="ghost" id="sellAll" type="button">Vendre les doublons</button>
-      </div>
-      <div class="hang" id="hang"></div>
+      <div class="chips" id="filters" role="group" aria-label="Filtrer par cadre"></div>
+      <div class="grid" id="hang"></div>
       <div class="empty" id="empty">
-        <p class="empty__text">Vos murs sont nus. Un tirage, et la première œuvre est accrochée.</p>
-        <a class="pill" href="#haut">Aller aux tirages</a>
+        <p>Tes murs sont nus.</p>
+        <button class="btn btn--main" type="button" data-tab="tirage">Ouvrir ma première œuvre</button>
       </div>
     </section>
 
-    <section class="room" id="cadres">
-      <div class="corners"><span>LES CINQ SALLES</span><span>CHANCES PAR TIRAGE</span></div>
-      <h2 class="display">Les cadres</h2>
-      <ol class="rates" id="rates"></ol>
-      <p class="room__note">Dix tirages donnent au moins un cadre d'argent. Un cadre doré arrive au plus tard au soixantième tirage.</p>
+    <section class="view" id="view-salles">
+      <h2 class="h2">Les cinq cadres</h2>
+      <ol class="salles" id="salles"></ol>
+      <h2 class="h2">Par artiste</h2>
+      <ol class="artists" id="artists"></ol>
+      <p class="hint">486 reproductions d'œuvres du domaine public, de Giotto à Mondrian. Les œuvres non identifiées sont présentées sans titre. Ta progression reste dans ce navigateur.</p>
     </section>
   </main>
 
-  <footer class="foot">
-    <p>486 reproductions d'œuvres du domaine public, de Giotto à Mondrian. Les titres ont été attribués à la main ; les œuvres non identifiées sont présentées sans titre. La progression reste dans ce navigateur.</p>
-  </footer>
+  <nav class="tabs" aria-label="Sections">
+    <button type="button" class="tab is-active" data-tab="tirage" aria-pressed="true">Ouvrir</button>
+    <button type="button" class="tab" data-tab="galerie" aria-pressed="false">Galerie <span class="tab__badge" id="newBadge" hidden></span></button>
+    <button type="button" class="tab" data-tab="salles" aria-pressed="false">Collection</button>
+  </nav>
 
   <dialog class="ten" id="tenDialog" aria-labelledby="tenTitle">
-    <div class="corners corners--light"><span>DIX TIRAGES</span><span id="tenMicro"></span></div>
-    <h2 class="display" id="tenTitle">Dix œuvres</h2>
+    <div class="ten__head">
+      <h2 id="tenTitle">Dix caisses</h2>
+      <button class="btn btn--small" id="flipAll" type="button">Tout retourner</button>
+    </div>
     <div class="ten__grid" id="tenGrid"></div>
-    <div class="ten__actions">
-      <button class="pill pill--light" id="closeTen" type="button">Accrocher à la galerie</button>
+    <div class="ten__foot">
+      <p class="ten__sum" id="tenSum"></p>
+      <button class="btn btn--main" id="closeTen" type="button">Accrocher à la galerie</button>
     </div>
   </dialog>
 
   <dialog class="detail" id="detailDialog" aria-label="Notice de l'œuvre">
-    <button class="detail__close" id="closeDetail" type="button" aria-label="Fermer">Fermer</button>
     <div class="detail__body" id="detailBody"></div>
   </dialog>
 
