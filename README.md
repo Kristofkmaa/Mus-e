@@ -49,7 +49,11 @@ Les API de modèles 3D de musées (Smithsonian 3D, Sketchfab, Scan the World) ex
 
 ## Design
 
-App à écran unique avec trois onglets (Ouvrir, Galerie, Collection). Papier mastic, encre et os, bouton principal noir, cadres métalliques en dégradé par rareté, caisse qui tremble puis éclate (plus longtemps si l'œuvre est rare), confettis et flash d'écran pour l'or et le vermeil, tampon « Légendaire ! », dix caisses sous forme de cartes à retourner. Fraunces en display, Hanken Grotesk pour l'interface.
+App à écran unique avec trois onglets (Ouvrir, Galerie, Collection). Papier mastic, encre et os, bouton principal noir, cadres métalliques en dégradé par rareté, tableau voilé d'un drap de velours rouge qui frémit puis tombe (plus longtemps si l'œuvre est rare), le cadre s'allumant à la couleur de la rareté sous le drap, confettis et flash d'écran pour l'or et le vermeil, tampon « Légendaire ! », dix caisses sous forme de cartes à retourner. Fraunces en display, Hanken Grotesk pour l'interface.
+
+## Panneau admin
+
+En bas de l'onglet Collection : ajouter des napoléons, forcer la rareté de la prochaine ouverture (ou une sculpture), déclencher la garantie dorée, tout remettre à zéro. C'est un outil de test visible de tous : retirer le bouton `#openAdmin` avant de publier.
 
 ## Fichiers
 

@@ -27,9 +27,11 @@
   <main>
     <section class="view is-active" id="view-tirage">
       <div class="stage" id="stage">
-        <div class="crate" id="crate" aria-hidden="true">
-          <div class="crate__box"><span class="crate__label">MUSÉE</span><span class="crate__tape"></span></div>
-          <div class="crate__shadow"></div>
+        <div class="veiled is-idle" id="veiled">
+          <div class="frame frame--pending" id="veilFrame" style="--ar:0.8">
+            <div class="veil__slot" id="veilSlot"></div>
+            <div class="drape" id="drape" aria-hidden="true"><span class="drape__cord"></span><span class="drape__tassel"></span></div>
+          </div>
         </div>
         <div class="reveal" id="reveal" hidden></div>
       </div>
@@ -63,6 +65,7 @@
       <ol class="salles" id="salles"></ol>
       <h2 class="h2">Par artiste</h2>
       <ol class="artists" id="artists"></ol>
+      <button class="btn btn--small" id="openAdmin" type="button">Panneau admin</button>
       <p class="hint">Reproductions d'œuvres du domaine public, de Giotto à Mondrian, et sculptures numérisées en 3D que l'on peut faire tourner du doigt. Les œuvres non identifiées sont présentées sans titre. Ta progression reste dans ce navigateur.</p>
     </section>
   </main>
@@ -87,6 +90,29 @@
 
   <dialog class="detail" id="detailDialog" aria-label="Notice de l'œuvre">
     <div class="detail__body" id="detailBody"></div>
+  </dialog>
+
+  <dialog class="detail admin" id="adminDialog" aria-labelledby="adminTitle">
+    <h2 class="h2" id="adminTitle">Panneau admin</h2>
+    <p class="hint admin__hint">Outils de test. Rien ici n'est caché aux joueurs : retire le bouton avant de publier.</p>
+    <div class="admin__group"><span class="admin__label">Napoléons</span>
+      <button class="btn btn--small" type="button" data-admin="coins:1000">+1 000</button>
+      <button class="btn btn--small" type="button" data-admin="coins:10000">+10 000</button>
+      <button class="btn btn--small" type="button" data-admin="coins:100000">+100 000</button>
+    </div>
+    <div class="admin__group"><span class="admin__label">Forcer la prochaine ouverture</span>
+      <button class="btn btn--small" type="button" data-admin="force:commune">Commune</button>
+      <button class="btn btn--small" type="button" data-admin="force:rare">Rare</button>
+      <button class="btn btn--small" type="button" data-admin="force:epique">Épique</button>
+      <button class="btn btn--small" type="button" data-admin="force:legendaire">Légendaire</button>
+      <button class="btn btn--small" type="button" data-admin="force:imperial">Impériale</button>
+      <button class="btn btn--small" type="button" data-admin="force:sculpture">Sculpture</button>
+    </div>
+    <div class="admin__group"><span class="admin__label">Progression</span>
+      <button class="btn btn--small" type="button" data-admin="pity">Garantie dorée au prochain tirage</button>
+      <button class="btn btn--small" type="button" data-admin="reset">Tout remettre à zéro</button>
+    </div>
+    <div class="detail__actions"><button class="btn btn--main btn--small" id="closeAdmin" type="button">Fermer</button></div>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>

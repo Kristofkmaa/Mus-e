@@ -84,7 +84,8 @@
   }
   const preload = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('image')); i.src = src; });
   async function drawArtwork(rarity) {
-    const pool = ART.filter((a) => a.r === rarity);
+    let pool = ART.filter((a) => a.r === rarity);
+    if (forced === 'sculpture') { forced = null; const s = ART.filter((a) => a.model); if (s.length) pool = s; }
     const missing = pool.filter((a) => !state.collection[a.key]);
     const from = missing.length && Math.random() < 0.7 ? missing : pool;
     const a = from[Math.floor(Math.random() * from.length)];
@@ -110,8 +111,10 @@
     $('#pityText').textContent = left === 1 ? 'Prochaine ouverture : cadre doré garanti' : `Cadre doré garanti dans ${left} ouvertures`;
     const st = $('#streak'); st.hidden = state.streak < 2; st.textContent = `🔥 ${state.streak} jours`;
   }
+  let forced = null; // panneau admin : rareté (ou 'sculpture') imposée au prochain tirage
   function finishRoll(id) { state.pity = BY_ID[id].rank <= 1 ? 0 : state.pity + 1; return id; }
   function rollRarity(minRank = 4) {
+    if (forced && forced !== 'sculpture') { const r = forced; forced = null; return r; }
     if (state.pity >= PITY - 1) { state.pity = 0; return Math.random() < 1.5 / 6.5 ? 'imperial' : 'legendaire'; }
     const pool = RARITIES.filter((r) => BY_ID[r.id].rank <= minRank);
     const total = pool.reduce((s, r) => s + r.rate, 0);
@@ -130,6 +133,10 @@
 
   /* ---------- Cadres et cartels ---------- */
 
+  function innerHTML(a, live) {
+    if (a.model && live) return `<model-viewer data-model="${esc(a.model)}" poster="${imgSrc(a)}" alt="${esc(a.title)}, ${esc(a.artist)}" camera-controls auto-rotate auto-rotate-delay="0" rotation-per-second="40deg" shadow-intensity="1" exposure="1.1" interaction-prompt="none" touch-action="pan-y"></model-viewer>`;
+    return `<img src="${imgSrc(a)}" alt="${esc(a.title)}, ${esc(a.artist)}" decoding="async">`;
+  }
   function frameHTML(a, cls = '', live = false) {
     if (a.model && live) {
       return `<div class="frame frame--${a.r} frame--vitrine ${cls}" style="--ar:1"><model-viewer data-model="${esc(a.model)}" poster="${imgSrc(a)}" alt="${esc(a.title)}, ${esc(a.artist)}" camera-controls auto-rotate auto-rotate-delay="0" rotation-per-second="40deg" shadow-intensity="1" exposure="1.1" interaction-prompt="none" touch-action="pan-y"></model-viewer></div>`;
@@ -177,38 +184,46 @@
     busy = true;
     state.coins -= PRICE; state.pulls += 1;
     const rarity = rollRarity();
-    const rank = 4 - BY_ID[rarity].rank; // 0 commune … 4 impériale
     save(); renderCoins();
 
-    const stage = $('#stage'), crate = $('#crate'), reveal = $('#reveal'), stamp = $('#stamp');
+    const stage = $('#stage'), veiled = $('#veiled'), vf = $('#veilFrame'), slot = $('#veilSlot'), reveal = $('#reveal'), stamp = $('#stamp');
     reveal.hidden = true; reveal.innerHTML = '';
     stamp.textContent = ''; stamp.classList.remove('is-on');
-    crate.hidden = false; crate.classList.remove('is-burst');
-    stage.style.setProperty('--glow', color(rarity));
-    const shake = 900 + rank * 350;
-    crate.style.setProperty('--shake', `${shake}ms`);
-    crate.classList.add('is-shaking');
-    buzz(rank >= 3 ? [60, 40, 60, 40, 120] : 40);
-    setTimeout(() => stage.classList.add('is-glowing'), shake * 0.4);
+    stage.classList.remove('is-glowing');
+    veiled.hidden = false; veiled.className = 'veiled is-waiting';
+    vf.className = 'frame frame--pending'; vf.style.setProperty('--ar', 0.8); slot.innerHTML = '';
+    veiled.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
 
     try {
-      const [a] = await Promise.all([drawArtwork(rarity), wait(shake)]);
+      const [a] = await Promise.all([drawArtwork(rarity), wait(600)]);
+      const rank = 4 - BY_ID[a.r].rank; // 0 commune … 4 impériale
       const res = collect(a);
       save();
-      crate.classList.remove('is-shaking'); crate.classList.add('is-burst');
-      await wait(250);
-      crate.hidden = true;
-      reveal.innerHTML = frameHTML(a, '', true) + (a.model ? '<p class="vitrine__hint">Sculpture en 3D, fais-la tourner</p>' : '') + cartelHTML(a, res);
-      reveal.hidden = false;
-      hydrateViewers(reveal);
-      const c = color(rarity);
+      // Le cadre prend sa couleur sous le drap, qui se met à trembler.
+      vf.className = `frame frame--${a.r} ${a.model ? 'frame--vitrine' : ''}`;
+      vf.style.setProperty('--ar', a.model ? 1 : a.ratio);
+      slot.innerHTML = innerHTML(a, true);
+      hydrateViewers(slot);
+      stage.style.setProperty('--glow', color(a.r));
+      stage.classList.add('is-glowing');
+      const shake = 900 + rank * 400;
+      veiled.style.setProperty('--shake', `${shake}ms`);
+      veiled.className = 'veiled is-tense';
+      buzz(rank >= 3 ? [60, 40, 60, 40, 120] : 40);
+      await wait(shake);
+      // Le drap tombe.
+      veiled.className = 'veiled is-unveiled';
+      await wait(450);
+      const c = color(a.r);
       confetti(30 + rank * 40, [c, '#fff4e0', rank >= 3 ? '#ffd75e' : c], { power: 1 + rank * 0.3 });
-      if (rank >= 2) { stamp.textContent = BY_ID[rarity].stamp; stamp.className = `stamp is-on r-${rarity}`; }
+      if (rank >= 2) { stamp.textContent = BY_ID[a.r].stamp; stamp.className = `stamp is-on r-${a.r}`; }
       if (rank >= 3) { flashScreen(); buzz([80, 60, 200]); setTimeout(() => confetti(120, ['#ffd75e', '#ff4d7a', '#7df9ff', '#fff'], { y: 0.3, power: 1.6 }), 300); }
+      reveal.innerHTML = (a.model ? '<p class="vitrine__hint">Sculpture en 3D, fais-la tourner</p>' : '') + cartelHTML(a, res);
+      reveal.hidden = false;
       renderAll();
     } catch {
       state.coins += PRICE; save();
-      crate.classList.remove('is-shaking');
+      veiled.className = 'veiled is-idle';
       toast('L\'œuvre n\'a pas pu être chargée, 100 napoléons rendus.');
     } finally {
       busy = false; renderCoins();
@@ -375,6 +390,16 @@
     $('#detailDialog').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
     $('#filters').addEventListener('click', (e) => { const b = e.target.closest('[data-f]'); if (b) { filter = b.dataset.f; renderGallery(); } });
     $('#wallet').addEventListener('click', () => toast(`${fmt(state.coins)} napoléons. +${DAILY} chaque jour.`));
+    $('#openAdmin').addEventListener('click', () => $('#adminDialog').showModal());
+    $('#closeAdmin').addEventListener('click', () => $('#adminDialog').close());
+    $('#adminDialog').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-admin]'); if (!b) return;
+      const [cmd, arg] = b.dataset.admin.split(':');
+      if (cmd === 'coins') { state.coins += Number(arg); save(); renderCoins(); toast(`+${fmt(Number(arg))} napoléons`); }
+      if (cmd === 'force') { forced = arg; $('#adminDialog').close(); showTab('tirage'); toast(`Prochaine ouverture : ${arg === 'sculpture' ? 'une sculpture' : BY_ID[arg].name.toLowerCase()}`); }
+      if (cmd === 'pity') { state.pity = PITY - 1; save(); renderCoins(); toast('Cadre doré garanti au prochain tirage'); }
+      if (cmd === 'reset') { localStorage.removeItem(STORE); location.reload(); }
+    });
     document.addEventListener('click', (e) => {
       const d = e.target.closest('[data-detail]'); if (d) return openDetail(d.dataset.detail);
       const t = e.target.closest('[data-tab]'); if (t) showTab(t.dataset.tab);
