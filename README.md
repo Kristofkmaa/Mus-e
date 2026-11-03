@@ -35,7 +35,7 @@ Puis ouvrir http://localhost:8000. Pour le publier : Settings → Pages → Depl
 
 ## Design
 
-App à écran unique avec trois onglets (Ouvrir, Galerie, Collection). Nuit violette, bouton principal doré, cadres métalliques en dégradé par rareté, caisse qui tremble puis éclate (plus longtemps si l'œuvre est rare), confettis et flash d'écran pour l'or et le vermeil, tampon « Légendaire ! », dix caisses sous forme de cartes à retourner. Fraunces (axe SOFT) en display, Bricolage Grotesque pour l'interface.
+App à écran unique avec trois onglets (Ouvrir, Galerie, Collection). Papier mastic, encre et os, bouton principal noir, cadres métalliques en dégradé par rareté, caisse qui tremble puis éclate (plus longtemps si l'œuvre est rare), confettis et flash d'écran pour l'or et le vermeil, tampon « Légendaire ! », dix caisses sous forme de cartes à retourner. Fraunces en display, Hanken Grotesk pour l'interface.
 
 ## Fichiers
 
