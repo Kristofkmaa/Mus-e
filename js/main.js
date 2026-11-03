@@ -118,84 +118,140 @@
   class Cloth {
     constructor(canvas) {
       this.c = canvas; this.ctx = canvas.getContext('2d');
-      this.cols = 26; this.rows = 34; this.pts = []; this.mode = 'idle'; this.t = 0; this.tense = 0; this.raf = 0; this.alive = false;
+      this.cols = 36; this.rows = 46; this.pts = []; this.mode = 'idle'; this.t = 0; this.tense = 0; this.raf = 0; this.alive = false;
+      this.leakColor = '#ffd75e';
+      // grain du velours, dessiné une fois
+      const g = document.createElement('canvas'); g.width = g.height = 96; const gc = g.getContext('2d'); const im = gc.createImageData(96, 96);
+      for (let i = 0; i < im.data.length; i += 4) { const v = 110 + Math.random() * 70; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+      gc.putImageData(im, 0, 0); this.grain = this.ctx.createPattern(g, 'repeat');
     }
     reset() {
-      const r = this.c.getBoundingClientRect();
+      const r = this.c.getBoundingClientRect(), fr = this.c.parentElement.getBoundingClientRect();
       this.w = r.width; this.h = r.height; this.c.width = this.w * devicePixelRatio; this.c.height = this.h * devicePixelRatio;
-      // Le drap couvre le cadre (qui occupe 16 %–84 % en x, 14 %–86 % en y du canvas) avec un débord.
-      const x0 = this.w * 0.05, x1 = this.w * 0.95, y0 = this.h * 0.085, y1 = this.h * 0.95;
+      // Le drap épouse le cadre réel (mesuré), avec un débord fixe.
+      this.fx0 = fr.left - r.left; this.fx1 = fr.right - r.left; const fy0 = fr.top - r.top; this.fy1 = fr.bottom - r.top;
+      const x0 = this.fx0 - 14, x1 = this.fx1 + 14, y0 = fy0 - 16, y1 = this.fy1 + 22;
+      this.rows = Math.max(24, Math.min(60, Math.round((y1 - y0) / 11)));
       this.sx = (x1 - x0) / (this.cols - 1); this.sy = (y1 - y0) / (this.rows - 1);
       this.pts = [];
       for (let j = 0; j < this.rows; j++) for (let i = 0; i < this.cols; i++) {
-        const x = x0 + i * this.sx, y = y0 + j * this.sy, zr = (Math.sin(i * 1.25) + 1) * 7 * Math.min(1, j / 3) + Math.sin(j * 0.6) * 2, z = zr;
-        this.pts.push({ x, y, z, zr, px: x, py: y, pz: z, pin: j === 0 });
+        const x = x0 + i * this.sx, y = y0 + j * this.sy;
+        const zr = ((Math.sin(i * 0.95) + 1) * 7 + Math.sin(i * 2.3) * 2.5) * Math.min(1, j / 3) + Math.sin(j * 0.5) * 1.5;
+        this.pts.push({ x, y, z: zr, zr, px: x, py: y, pz: zr, pin: j === 0, x0: x, y0: y });
+      }
+      for (let k = 0; k < 40; k++) this.step(0.016); // laisse le tissu se poser avant le premier rendu
+      {
       }
       this.mode = 'idle'; this.t = 0; this.tense = 0; this.gust = 0; this.alive = true; this.fade = 1; this.dropT = 0;
       if (!this.raf) this.raf = requestAnimationFrame((ts) => this.loop(ts));
     }
     at(i, j) { return this.pts[j * this.cols + i]; }
     step(dt) {
-      const g = this.mode === 'drop' ? 1.4 : 0.6, k = this.mode === 'drop' ? 0.995 : 0.975;
+      const drop = this.mode === 'drop';
+      const g = drop ? (this.dropT < 0.3 ? -2.2 : 1.6) : 0.3, k = drop ? 0.995 : 0.96;
       this.t += dt;
       for (const p of this.pts) {
         if (p.pin) continue;
         const vx = (p.x - p.px) * k, vy = (p.y - p.py) * k, vz = (p.z - p.pz) * k;
         p.px = p.x; p.py = p.y; p.pz = p.z;
-        // vent : souffle lent au repos, bourrasque nerveuse quand ça se tend, rafale vers le haut quand on arrache
-        const wave = Math.sin(this.t * 1.6 + p.y * 0.02) * 0.35 + Math.sin(this.t * 2.7 + p.x * 0.03) * 0.25;
-        let fx = wave * 0.08, fz = wave * 0.35;
-        if (this.mode === 'tense') { const a = this.tense; fx += Math.sin(this.t * (18 + a * 22) + p.y * 0.05) * a * 1.6; fz += (Math.sin(this.t * 25 + p.x * 0.08) + 0.6) * a * 1.4; }
-        if (this.mode === 'drop') { fx += this.gust * 1.2 + (Math.random() - 0.5) * 1.2; fz += Math.sin(this.t * 9 + p.y * 0.04) * 3 + 1; }
+        const wave = Math.sin(this.t * 1.4 + p.y * 0.02) * 0.35 + Math.sin(this.t * 2.3 + p.x * 0.03) * 0.25;
+        let fx = wave * 0.06, fz = wave * 0.3;
+        if (this.mode === 'tense') {
+          const a = this.tense;
+          fx += Math.sin(this.t * (16 + a * 24) + p.y * 0.05) * a * 1.5;
+          fz += (Math.sin(this.t * 22 + p.x * 0.07) + 0.8) * a * 1.6 + Math.sin(this.t * 6) * a * 0.8;
+        }
+        if (drop) { fx += this.gust * 1.1 + (Math.random() - 0.5) * 1.4; fz += Math.sin(this.t * 9 + p.y * 0.04) * 3 + 1.5; }
         p.x += vx + fx; p.y += vy + g; p.z += vz + fz;
-        // le cadre est derrière : le tissu ne peut pas passer au travers, et il retombe à plat dessus
-        if (p.z < 0) { p.z = 0; p.pz = 0; }
-        if (this.mode !== 'drop') { p.z += (p.zr - p.z) * 0.08; if (p.z > 34) p.z = 34; }
+        if (p.z < 0) { p.z = 0; p.pz = 0; }                       // le cadre est derrière
+        if (!drop) { p.z += (p.zr - p.z) * 0.07; if (p.z > 36) p.z = 36; p.x += (p.x0 - p.x) * 0.03; }
       }
-      for (let it = 0; it < 3; it++) {
+      for (let it = 0; it < (drop ? 3 : 6); it++) {
         for (let j = 0; j < this.rows; j++) for (let i = 0; i < this.cols; i++) {
           const p = this.at(i, j);
           if (i < this.cols - 1) this.link(p, this.at(i + 1, j), this.sx);
           if (j < this.rows - 1) this.link(p, this.at(i, j + 1), this.sy);
-          if (i < this.cols - 1 && j < this.rows - 1) this.link(p, this.at(i + 1, j + 1), Math.hypot(this.sx, this.sy), 0.3);
+          if (i < this.cols - 1 && j < this.rows - 1) this.link(p, this.at(i + 1, j + 1), Math.hypot(this.sx, this.sy), 0.35);
+          if (i < this.cols - 2) this.link(p, this.at(i + 2, j), this.sx * 2, 0.2);   // raideur contre le froissement
         }
       }
-      if (this.mode === 'tense') { // les épingles tremblent avec la tension
-        const a = this.tense, s = Math.sin(this.t * 40) * a * 6, s2 = Math.cos(this.t * 31) * a * 3;
-        for (let i = 0; i < this.cols; i++) { const p = this.at(i, 0); p.x = p.x0 ?? (p.x0 = p.x); p.x = p.x0 + s + Math.sin(i * 0.8 + this.t * 20) * a * 2; p.y = (p.y0 ?? (p.y0 = p.y)) + s2; }
+      if (!drop) { // le tissu ne peut pas s'étirer au-delà de sa longueur : chaque rangée reste sous sa tringle
+        for (let j = 1; j < this.rows; j++) for (let i = 0; i < this.cols; i++) { const p = this.at(i, j), lim = this.at(i, 0).y + j * this.sy * 1.02; if (p.y > lim) { p.y = lim; p.py = Math.min(p.py, lim); } }
       }
-      if (this.mode === 'drop') this.gust *= 0.96;
+      if (this.mode === 'tense') {
+        const a = this.tense, s = Math.sin(this.t * 40) * a * 7, s2 = Math.cos(this.t * 31) * a * 3;
+        for (let i = 0; i < this.cols; i++) { const p = this.at(i, 0); p.x = p.x0 + s + Math.sin(i * 0.8 + this.t * 20) * a * 2; p.y = p.y0 + s2; }
+      }
+      if (drop) this.gust *= 0.965;
     }
     link(a, b, rest, stiff = 1) {
       const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, d = Math.hypot(dx, dy, dz) || 1, diff = (d - rest) / d * 0.5 * stiff;
       if (!a.pin) { a.x += dx * diff; a.y += dy * diff; a.z += dz * diff; }
       if (!b.pin) { b.x -= dx * diff; b.y -= dy * diff; b.z -= dz * diff; }
     }
+    // fausse perspective : ce qui bombe vers nous paraît un peu plus grand
+    sx_(p) { return this.w / 2 + (p.x - this.w / 2) * (1 + p.z / 900); }
+    sy_(p) { return this.h / 2 + (p.y - this.h / 2) * (1 + p.z / 900); }
+    outline(ctx, dx = 0, dy = 0) {
+      ctx.beginPath();
+      for (let i = 0; i < this.cols; i++) { const p = this.at(i, 0); i ? ctx.lineTo(this.sx_(p) + dx, this.sy_(p) + dy) : ctx.moveTo(this.sx_(p) + dx, this.sy_(p) + dy); }
+      for (let j = 1; j < this.rows; j++) { const p = this.at(this.cols - 1, j); ctx.lineTo(this.sx_(p) + dx, this.sy_(p) + dy); }
+      for (let i = this.cols - 1; i >= 0; i--) { const p = this.at(i, this.rows - 1); ctx.lineTo(this.sx_(p) + dx, this.sy_(p) + dy); }
+      for (let j = this.rows - 2; j > 0; j--) { const p = this.at(0, j); ctx.lineTo(this.sx_(p) + dx, this.sy_(p) + dy); }
+      ctx.closePath();
+    }
     draw() {
       const ctx = this.ctx; ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0); ctx.clearRect(0, 0, this.w, this.h);
+      // fuite de lumière de la rareté sous le bord, qui monte avec la tension
+      if (this.mode === 'tense' && this.tense > 0.2) {
+        const a = Math.min(1, (this.tense - 0.2) * 1.4), flick = 0.75 + Math.sin(this.t * 37) * 0.15 + Math.random() * 0.1;
+        const cx = (this.fx0 + this.fx1) / 2, gr = ctx.createRadialGradient(cx, this.fy1, 10, cx, this.fy1, (this.fx1 - this.fx0) * 0.6);
+        gr.addColorStop(0, this.leakColor); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.globalAlpha = a * flick * 0.9; ctx.fillStyle = gr; ctx.fillRect(0, 0, this.w, this.h); ctx.globalAlpha = 1;
+      }
       ctx.globalAlpha = this.fade;
+      // tringle dorée à embouts
+      const top = this.at(0, 0), topR = this.at(this.cols - 1, 0), ry = Math.min(top.y, topR.y) - 7;
+      if (this.mode !== 'drop') {
+        const rod = ctx.createLinearGradient(0, ry - 4, 0, ry + 4); rod.addColorStop(0, '#fff0c0'); rod.addColorStop(0.5, '#d9a51f'); rod.addColorStop(1, '#8a6410');
+        ctx.fillStyle = rod; ctx.fillRect(this.fx0 - 26, ry - 3.5, this.fx1 - this.fx0 + 52, 7);
+        for (const x of [this.fx0 - 30, this.fx1 + 30]) { ctx.beginPath(); ctx.arc(x, ry, 7, 0, Math.PI * 2); ctx.fillStyle = '#e6b933'; ctx.fill(); ctx.beginPath(); ctx.arc(x - 2, ry - 2, 2.5, 0, Math.PI * 2); ctx.fillStyle = '#fff6d0'; ctx.fill(); }
+      }
       // ombre portée
-      ctx.save(); ctx.translate(6, 14); ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.beginPath();
-      for (let i = 0; i < this.cols; i++) { const p = this.at(i, 0); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); }
-      for (let j = 1; j < this.rows; j++) { const p = this.at(this.cols - 1, j); ctx.lineTo(p.x, p.y); }
-      for (let i = this.cols - 1; i >= 0; i--) { const p = this.at(i, this.rows - 1); ctx.lineTo(p.x, p.y); }
-      for (let j = this.rows - 2; j > 0; j--) { const p = this.at(0, j); ctx.lineTo(p.x, p.y); }
-      ctx.closePath(); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.filter = 'blur(6px)'; this.outline(ctx, 8, 16); ctx.fill(); ctx.restore();
       // velours : chaque maille éclairée selon sa normale
       for (let j = 0; j < this.rows - 1; j++) for (let i = 0; i < this.cols - 1; i++) {
         const a = this.at(i, j), b = this.at(i + 1, j), c = this.at(i + 1, j + 1), d = this.at(i, j + 1);
         const ux = c.x - a.x, uy = c.y - a.y, uz = c.z - a.z, vx = d.x - b.x, vy = d.y - b.y, vz = d.z - b.z;
         let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; const n = Math.hypot(nx, ny, nz) || 1; nx /= n; ny /= n; nz /= n;
-        const lit = Math.max(0, nx * -0.6 + ny * -0.3 + nz * 0.74); const rim = Math.pow(1 - Math.abs(nz), 2.2);
-        const l = 0.22 + lit * 0.78 + rim * 0.45;
-        const r = Math.min(255, 150 * l + rim * 90), gg = Math.min(255, 18 * l + rim * 30), bb = Math.min(255, 36 * l + rim * 40);
-        ctx.fillStyle = `rgb(${r | 0},${gg | 0},${bb | 0})`; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.8;
-        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        const lit = Math.max(0, nx * -0.55 + ny * -0.3 + nz * 0.78);
+        const rim = Math.pow(1 - Math.abs(nz), 2);                // le velours s'éclaircit sur les bords des plis
+        const spec = Math.pow(Math.max(0, nx * -0.4 + ny * -0.5 + nz * 0.77), 24) * 0.35;
+        const l = 0.2 + lit * 0.75 + rim * 0.5 + spec;
+        const r = Math.min(255, 158 * l + rim * 70 + spec * 160), gg = Math.min(255, 14 * l + rim * 26 + spec * 90), bb = Math.min(255, 34 * l + rim * 44 + spec * 110);
+        ctx.fillStyle = `rgb(${r | 0},${gg | 0},${bb | 0})`; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.7;
+        ctx.beginPath(); ctx.moveTo(this.sx_(a), this.sy_(a)); ctx.lineTo(this.sx_(b), this.sy_(b)); ctx.lineTo(this.sx_(c), this.sy_(c)); ctx.lineTo(this.sx_(d), this.sy_(d)); ctx.closePath(); ctx.fill(); ctx.stroke();
       }
-      // cordon doré le long du haut
-      ctx.lineWidth = 3; ctx.strokeStyle = '#d9a51f'; ctx.beginPath();
-      for (let i = 0; i < this.cols; i++) { const p = this.at(i, 1); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); }
-      ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = '#ffe79a'; ctx.stroke();
+      // grain
+      ctx.save(); this.outline(ctx); ctx.clip(); ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = this.fade * 0.28; ctx.fillStyle = this.grain; ctx.fillRect(0, 0, this.w, this.h); ctx.restore();
+      ctx.globalAlpha = this.fade;
+      // franges à pompons sous le bord
+      const last = this.rows - 1;
+      for (let i = 0; i < this.cols; i += 2) {
+        const p = this.at(i, last), q = this.at(i, last - 1);
+        const x = this.sx_(p), y = this.sy_(p), dx = (p.x - p.px) * 2.5 + (p.x - q.x) * 0.3, len = 16;
+        ctx.strokeStyle = '#c9961c'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + dx * 0.4, y + len * 0.6, x + dx, y + len); ctx.stroke();
+        ctx.fillStyle = '#e6b933'; ctx.beginPath(); ctx.arc(x + dx, y + len + 3, 3.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff0c0'; ctx.beginPath(); ctx.arc(x + dx - 1, y + len + 2, 1.1, 0, Math.PI * 2); ctx.fill();
+      }
+      // cordon doré le long du haut, et son gland au centre
+      ctx.lineWidth = 3.5; ctx.strokeStyle = '#b8860b'; ctx.beginPath();
+      for (let i = 0; i < this.cols; i++) { const p = this.at(i, 1); i ? ctx.lineTo(this.sx_(p), this.sy_(p)) : ctx.moveTo(this.sx_(p), this.sy_(p)); }
+      ctx.stroke(); ctx.lineWidth = 1.2; ctx.strokeStyle = '#ffe79a'; ctx.stroke();
+      const m = this.at(this.cols >> 1, 1), mx = this.sx_(m), my = this.sy_(m), md = (m.x - m.px) * 3;
+      ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(mx, my); ctx.quadraticCurveTo(mx + md * 0.5, my + 14, mx + md, my + 26); ctx.stroke();
+      ctx.fillStyle = '#e6b933'; ctx.beginPath(); ctx.ellipse(mx + md, my + 34, 5, 9, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff0c0'; ctx.beginPath(); ctx.arc(mx + md - 1.5, my + 30, 1.6, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
     }
     loop(ts) {
@@ -204,13 +260,13 @@
       if (!reduced) { this.step(dt || 0.016); this.draw(); }
       else if (this.mode === 'drop') { this.alive = false; this.ctx.clearRect(0, 0, this.c.width, this.c.height); }
       else this.draw();
-      if (this.mode === 'drop') { this.dropT = (this.dropT || 0) + dt; if (this.dropT > 0.45) this.fade = Math.max(0, this.fade - dt * 0.9); if (this.fade <= 0) this.alive = false; }
+      if (this.mode === 'drop') { this.dropT += dt; if (this.dropT > 0.5) this.fade = Math.max(0, this.fade - dt * 0.8); if (this.fade <= 0) this.alive = false; }
       this.raf = requestAnimationFrame((t) => this.loop(t));
     }
     setTense(a) { this.mode = 'tense'; this.tense = a; }
     drop() {
-      this.mode = 'drop'; this.gust = 6 + Math.random() * 3;
-      for (const p of this.pts) { if (p.pin) { p.pin = false; p.px = p.x + (Math.random() - 0.5) * 6; p.py = p.y + 10; } }
+      this.mode = 'drop'; this.gust = 7 + Math.random() * 3; this.dropT = 0;
+      for (const p of this.pts) { if (p.pin) { p.pin = false; p.px = p.x + (Math.random() - 0.5) * 4; p.py = p.y + 14; } }
     }
   }
   let cloth = null;
@@ -346,9 +402,11 @@
       vf.style.setProperty('--ar', a.model ? 1 : a.ratio);
       slot.innerHTML = innerHTML(a, true);
       hydrateViewers(slot);
-      await wait(50); cloth.reset();
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      cloth.reset();
       stage.style.setProperty('--glow', color(a.r));
       stage.classList.add('is-glowing');
+      cloth.leakColor = color(a.r);
       veiled.className = 'veiled is-tense';
       const shake = 1100 + rank * 450, t0 = performance.now();
       let lastTick = 0;
@@ -560,7 +618,7 @@
     snd.setAttribute('aria-pressed', soundOn());
     snd.addEventListener('click', () => { state.sound = !soundOn(); save(); snd.setAttribute('aria-pressed', soundOn()); if (soundOn()) chime(2); });
     cloth = new Cloth($('#cloth'));
-    cloth.reset();
+    requestAnimationFrame(() => cloth.reset());
     addEventListener('resize', () => { if (cloth.mode !== 'drop') cloth.reset(); });
     shownCoins = state.coins;
     renderAll(); renderCoins();
