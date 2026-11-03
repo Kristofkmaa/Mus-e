@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Musée</title>
-  <meta name="description" content="Ouvre des caisses, découvre de vrais chefs-d'œuvre et remplis ta galerie. 486 tableaux, cinq cadres, du bois au vermeil.">
+  <meta name="description" content="Ouvre des caisses, découvre de vrais chefs-d'œuvre, tableaux et sculptures en 3D, et remplis ta galerie.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
 </head>
 <body>
   <canvas class="fx" id="fx" aria-hidden="true"></canvas>
@@ -46,7 +47,7 @@
 
     <section class="view" id="view-galerie">
       <div class="progress">
-        <div class="progress__head"><strong>Ma galerie</strong><span id="progressText">0 / 486</span></div>
+        <div class="progress__head"><strong>Ma galerie</strong><span id="progressText">0 / 491</span></div>
         <div class="progress__track"><div class="progress__fill" id="progressFill"></div></div>
       </div>
       <div class="chips" id="filters" role="group" aria-label="Filtrer par cadre"></div>
@@ -62,7 +63,7 @@
       <ol class="salles" id="salles"></ol>
       <h2 class="h2">Par artiste</h2>
       <ol class="artists" id="artists"></ol>
-      <p class="hint">486 reproductions d'œuvres du domaine public, de Giotto à Mondrian. Les œuvres non identifiées sont présentées sans titre. Ta progression reste dans ce navigateur.</p>
+      <p class="hint">Reproductions d'œuvres du domaine public, de Giotto à Mondrian, et sculptures numérisées en 3D que l'on peut faire tourner du doigt. Les œuvres non identifiées sont présentées sans titre. Ta progression reste dans ce navigateur.</p>
     </section>
   </main>
 

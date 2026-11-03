@@ -14,7 +14,7 @@ Puis ouvrir http://localhost:8000. Pour le publier : Settings → Pages → Depl
 
 ## Le catalogue
 
-486 reproductions dans `art/`, décrites dans `art/catalogue.json` (clé, artiste, titre, date, musée, technique, salle). Les images viennent du jeu de données « Best Artworks of All Time » (peintres morts depuis plus de 70 ans). Les titres ont été attribués à la main à partir des images ; les œuvres non identifiées sont présentées sans titre, dans la salle commune. Quelques titres, dates ou lieux peuvent être inexacts.
+491 œuvres : 486 reproductions de tableaux dans `art/`, décrites dans `art/catalogue.json` (clé, artiste, titre, date, musée, technique, salle). Les images viennent du jeu de données « Best Artworks of All Time » (peintres morts depuis plus de 70 ans). Les titres ont été attribués à la main à partir des images ; les œuvres non identifiées sont présentées sans titre, dans la salle commune. Quelques titres, dates ou lieux peuvent être inexacts.
 
 | Hexagones | Salle | Cadre | Chance | Revente | Œuvres |
 |---|---|---|---|---|---|
@@ -23,6 +23,20 @@ Puis ouvrir http://localhost:8000. Pour le publier : Settings → Pages → Depl
 | 3 | Épique | Argent | 13,5 % | 50 N | 85 |
 | 2 | Rare | Bronze | 30 % | 15 N | 156 |
 | 1 | Commune | Bois | 50 % | 5 N | 168 |
+
+## Sculptures en 3D
+
+Cinq sculptures numérisées, dans `art/3d/` (GLB allégés à 17 000–80 000 faces, sans texture : la page leur applique un marbre uniforme), affichées avec [model-viewer](https://modelviewer.dev/) chargé depuis unpkg. On peut les faire tourner du doigt.
+
+| Œuvre | Source du scan | Licence |
+|---|---|---|
+| David, Michel-Ange | Sketchfab, via un projet de galerie virtuelle | non précisée |
+| Victoire de Samothrace | fichier `full_sculpture` d'un projet de galerie virtuelle | non précisée |
+| Tête du David | Statens Museum for Kunst (Scan the World), repost Thomas Flynn | CC BY 4.0 |
+| Buste de jeune femme | exemples de t3d.js | non précisée |
+| Buste d'homme à l'antique | Poly Haven, `marble_bust_01` | CC0 |
+
+Les API de modèles 3D de musées (Smithsonian 3D, Sketchfab, Scan the World) existent mais n'étaient pas joignables depuis l'environnement de développement ; les fichiers viennent de dépôts GitHub publics.
 
 ## Règles
 

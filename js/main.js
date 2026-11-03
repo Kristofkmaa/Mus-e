@@ -130,14 +130,23 @@
 
   /* ---------- Cadres et cartels ---------- */
 
-  function frameHTML(a, cls = '') {
+  function frameHTML(a, cls = '', live = false) {
+    if (a.model && live) {
+      return `<div class="frame frame--${a.r} frame--vitrine ${cls}" style="--ar:1"><model-viewer src="${esc(a.model)}" poster="${imgSrc(a)}" alt="${esc(a.title)}, ${esc(a.artist)}" camera-controls auto-rotate auto-rotate-delay="0" rotation-per-second="40deg" shadow-intensity="1" exposure="1.1" interaction-prompt="none" touch-action="pan-y"></model-viewer></div>`;
+    }
     return `<div class="frame frame--${a.r} ${cls}" style="--ar:${a.ratio}"><img src="${imgSrc(a)}" alt="${esc(a.title)}, ${esc(a.artist)}" loading="lazy" decoding="async"></div>`;
   }
+  // Les scans sont gris : on leur donne un marbre clair une fois chargés.
+  document.addEventListener('load', (e) => {
+    const mv = e.target;
+    if (!mv.model) return;
+    for (const m of mv.model.materials) { m.pbrMetallicRoughness.setBaseColorFactor([0.93, 0.9, 0.85, 1]); m.pbrMetallicRoughness.setMetallicFactor(0); m.pbrMetallicRoughness.setRoughnessFactor(0.55); }
+  }, true);
   function cartelHTML(a, res) {
     const r = BY_ID[a.r];
     return `
       <div class="cartel">
-        <p class="cartel__rarity r-${a.r}">${esc(r.name)}, cadre ${esc(r.frame.toLowerCase())}</p>
+        <p class="cartel__rarity r-${a.r}">${esc(r.name)}, ${a.model ? 'socle' : 'cadre'} ${esc(r.frame.toLowerCase())}</p>
         <p class="cartel__artist">${esc(a.artist)}</p>
         <p class="cartel__title"><cite>${esc(a.title)}</cite>${a.date ? `, ${esc(a.date)}` : ''}</p>
         <div class="cartel__tags">
@@ -175,7 +184,7 @@
       crate.classList.remove('is-shaking'); crate.classList.add('is-burst');
       await wait(250);
       crate.hidden = true;
-      reveal.innerHTML = frameHTML(a) + cartelHTML(a, res);
+      reveal.innerHTML = frameHTML(a, '', true) + (a.model ? '<p class="vitrine__hint">Sculpture en 3D, fais-la tourner</p>' : '') + cartelHTML(a, res);
       reveal.hidden = false;
       const c = color(rarity);
       confetti(30 + rank * 40, [c, '#fff4e0', rank >= 3 ? '#ffd75e' : c], { power: 1 + rank * 0.3 });
@@ -260,8 +269,9 @@
     $('#filters').innerHTML = [
       `<button type="button" class="chip" aria-pressed="${filter === 'all'}" data-f="all">Toutes<span>${all.length}</span></button>`,
       ...RARITIES.map((r) => `<button type="button" class="chip" aria-pressed="${filter === r.id}" data-f="${r.id}">${r.name}<span>${counts[r.id]}</span></button>`),
+      `<button type="button" class="chip" aria-pressed="${filter === 'sculpture'}" data-f="sculpture">Sculptures<span>${all.filter((c) => c.art.model).length}</span></button>`,
     ].join('');
-    const list = all.filter((c) => filter === 'all' || c.art.r === filter).sort((x, y) => y.at - x.at);
+    const list = all.filter((c) => filter === 'all' || c.art.r === filter || (filter === 'sculpture' && c.art.model)).sort((x, y) => y.at - x.at);
     $('#progressText').textContent = `${all.length} / ${ART.length}`;
     $('#progressFill').style.width = `${(all.length / ART.length) * 100}%`;
     $('#empty').hidden = all.length > 0;
@@ -284,9 +294,9 @@
     if (!a) return;
     const r = BY_ID[a.r];
     $('#detailBody').innerHTML = `
-      <div class="detail__art">${frameHTML(a)}</div>
+      <div class="detail__art">${frameHTML(a, '', true)}</div>
       <div class="detail__text">
-        <p class="cartel__rarity r-${a.r}">${esc(r.name)}, cadre ${esc(r.frame.toLowerCase())}</p>
+        <p class="cartel__rarity r-${a.r}">${esc(r.name)}, ${a.model ? 'socle' : 'cadre'} ${esc(r.frame.toLowerCase())}</p>
         <p class="cartel__artist">${esc(a.artist)}</p>
         <p class="cartel__title"><cite>${esc(a.title)}</cite>${a.date ? `, ${esc(a.date)}` : ''}</p>
         <div class="detail__meta">

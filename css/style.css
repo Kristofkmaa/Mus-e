@@ -165,6 +165,11 @@ main { padding-bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom, 0px) + 1
 }
 @keyframes holo { to { background-position: 300% 300%; } }
 .frame--small { --fw: 8px; }
+/* Vitrine : une sculpture tourne sur un socle de la couleur du cadre */
+.frame model-viewer { width: 100%; height: auto; aspect-ratio: var(--ar, 1); background: radial-gradient(circle at 50% 70%, var(--chalk), var(--bone) 70%); box-shadow: 0 0 0 2px rgb(0 0 0 / 0.6); --poster-color: var(--bone); }
+.frame--vitrine { padding-bottom: calc(var(--fw) * 2.2); }
+.frame--vitrine::after { inset: calc(var(--fw) * 0.45) calc(var(--fw) * 0.45) calc(var(--fw) * 1.6); }
+.vitrine__hint { font-size: 11px; color: var(--graphite); letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* ---------- Révélation ---------- */
 
@@ -289,6 +294,7 @@ main { padding-bottom: calc(var(--tabs-h) + env(safe-area-inset-bottom, 0px) + 1
 .detail__body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; align-items: center; }
 .detail__art .frame { --fw: 12px; }
 .detail__art .frame img { object-fit: contain; max-height: calc(100svh - 24px - 40px - 24px); aspect-ratio: var(--ar, 1); }
+.detail__art .frame model-viewer { max-height: calc(100svh - 24px - 40px - 60px); }
 .detail__text { display: grid; gap: 8px; min-width: 0; }
 .detail__meta { font-size: 13px; color: var(--graphite); line-height: 1.5; }
 .detail__meta p { margin: 0; }
