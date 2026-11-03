@@ -132,9 +132,23 @@
 
   function frameHTML(a, cls = '', live = false) {
     if (a.model && live) {
-      return `<div class="frame frame--${a.r} frame--vitrine ${cls}" style="--ar:1"><model-viewer src="${esc(a.model)}" poster="${imgSrc(a)}" alt="${esc(a.title)}, ${esc(a.artist)}" camera-controls auto-rotate auto-rotate-delay="0" rotation-per-second="40deg" shadow-intensity="1" exposure="1.1" interaction-prompt="none" touch-action="pan-y"></model-viewer></div>`;
+      return `<div class="frame frame--${a.r} frame--vitrine ${cls}" style="--ar:1"><model-viewer data-model="${esc(a.model)}" poster="${imgSrc(a)}" alt="${esc(a.title)}, ${esc(a.artist)}" camera-controls auto-rotate auto-rotate-delay="0" rotation-per-second="40deg" shadow-intensity="1" exposure="1.1" interaction-prompt="none" touch-action="pan-y"></model-viewer></div>`;
     }
     return `<div class="frame frame--${a.r} ${cls}" style="--ar:${a.ratio}"><img src="${imgSrc(a)}" alt="${esc(a.title)}, ${esc(a.artist)}" loading="lazy" decoding="async"></div>`;
+  }
+  // Donne sa source à chaque vitrine. Un modèle publié en base64 (.txt) devient un blob.
+  const modelUrls = {};
+  async function modelUrl(path) {
+    if (!path.endsWith('.txt')) return path;
+    if (!modelUrls[path]) modelUrls[path] = fetch(path).then((r) => r.text()).then((b64) => {
+      const bin = atob(b64.trim()), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return URL.createObjectURL(new Blob([bytes], { type: 'model/gltf-binary' }));
+    });
+    return modelUrls[path];
+  }
+  function hydrateViewers(root) {
+    root.querySelectorAll('model-viewer[data-model]').forEach(async (mv) => { mv.src = await modelUrl(mv.dataset.model); });
   }
   // Les scans sont gris : on leur donne un marbre clair une fois chargés.
   document.addEventListener('load', (e) => {
@@ -186,6 +200,7 @@
       crate.hidden = true;
       reveal.innerHTML = frameHTML(a, '', true) + (a.model ? '<p class="vitrine__hint">Sculpture en 3D, fais-la tourner</p>' : '') + cartelHTML(a, res);
       reveal.hidden = false;
+      hydrateViewers(reveal);
       const c = color(rarity);
       confetti(30 + rank * 40, [c, '#fff4e0', rank >= 3 ? '#ffd75e' : c], { power: 1 + rank * 0.3 });
       if (rank >= 2) { stamp.textContent = BY_ID[rarity].stamp; stamp.className = `stamp is-on r-${rarity}`; }
@@ -305,6 +320,7 @@
         </div>
         <div class="detail__actions"><button class="btn btn--small" type="button" id="closeDetail">Fermer</button></div>
       </div>`;
+    hydrateViewers($('#detailBody'));
     $('#closeDetail').addEventListener('click', () => $('#detailDialog').close());
     const dlg = $('#detailDialog');
     if (!dlg.open) dlg.showModal();
